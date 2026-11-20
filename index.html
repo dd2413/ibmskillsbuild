@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard CISEC — Politeknik Balik Pulau</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, #c0392b 0%, #96281b 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 64px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-logo {
+      width: 42px; height: 42px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-logo i { color: #c0392b; font-size: 20px; }
+    .header-title h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
+    .header-title p { font-size: 11px; opacity: 0.85; font-weight: 300; }
+    .header-right { text-align: right; font-size: 12px; opacity: 0.9; }
+    #datetime { font-weight: 500; font-size: 13px; }
+
+    /* ===== LAYOUT ===== */
+    .layout { display: flex; margin-top: 64px; min-height: calc(100vh - 64px); }
+
+    /* ===== SIDEBAR ===== */
+    aside {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      position: fixed;
+      top: 64px; bottom: 0; left: 0;
+      overflow-y: auto;
+      padding: 20px 0;
+      z-index: 90;
+    }
+    .sidebar-section { padding: 6px 16px 4px; font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: #444;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-item:hover { background: #fff0ef; color: #c0392b; }
+    .nav-item.active { background: #fff0ef; color: #c0392b; border-left-color: #c0392b; font-weight: 600; }
+    .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+
+    /* ===== MAIN CONTENT ===== */
+    main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 28px 28px 40px;
+    }
+
+    .module { display: none; }
+    .module.active { display: block; }
+
+    .module-header { margin-bottom: 24px; }
+    .module-header h2 { font-size: 20px; font-weight: 700; color: #c0392b; }
+    .module-header p { font-size: 13px; color: #666; margin-top: 2px; }
+    .divider { height: 3px; width: 48px; background: #c0392b; border-radius: 2px; margin-top: 6px; }
+
+    /* ===== CARDS GRID ===== */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: #c0392b;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px 18px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: 0 2px 8px rgba(192,57,43,0.25);
+    }
+    .stat-card.light { background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .stat-card .stat-icon { font-size: 28px; opacity: 0.85; }
+    .stat-card.light .stat-icon { color: #c0392b; }
+    .stat-card .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }
+    .stat-card .stat-label { font-size: 11.5px; opacity: 0.9; margin-top: 2px; }
+    .stat-card.light .stat-label { color: #666; }
+
+    /* ===== PANELS ===== */
+    .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid #e8e8e8;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .panel.full { grid-column: 1 / -1; }
+    .panel h3 { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 14px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+
+    /* ===== TABLE ===== */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: #c0392b; color: #fff; padding: 10px 12px; text-align: left; font-weight: 500; font-size: 12px; }
+    thead th:first-child { border-radius: 6px 0 0 0; }
+    thead th:last-child { border-radius: 0 6px 0 0; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    tbody tr:hover { background: #fff0ef; }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; color: #333; }
+
+    /* ===== BADGE ===== */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-green { background: #e8f5e9; color: #2e7d32; }
+    .badge-red { background: #ffebee; color: #c62828; }
+    .badge-blue { background: #e3f2fd; color: #1565c0; }
+    .badge-grey { background: #f0f0f0; color: #666; }
+    .badge-orange { background: #fff3e0; color: #e65100; }
+
+    /* ===== NOTICE LIST ===== */
+    .notice-list { list-style: none; }
+    .notice-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 13px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .notice-list li:last-child { border-bottom: none; }
+    .notice-list .dot { width: 8px; height: 8px; background: #c0392b; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .notice-date { font-size: 11px; color: #999; margin-top: 2px; }
+
+    /* ===== PROGRAM CARDS ===== */
+    .program-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .prog-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #e8e8e8;
+      padding: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      border-top: 4px solid #c0392b;
+    }
+    .prog-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #222; }
+    .prog-card .prog-meta { font-size: 12px; color: #666; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .prog-card .prog-meta i { color: #c0392b; width: 14px; }
+
+    /* ===== KPI TABLE ===== */
+    .kpi-meet { background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+    .kpi-miss { background: #ffebee; color: #c62828; font-weight: 600; }
+
+    /* ===== AWARD LIST ===== */
+    .award-list { list-style: none; }
+    .award-list li {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 13px;
+    }
+    .award-list li:last-child { border-bottom: none; }
+    .award-list .trophy { color: #f39c12; font-size: 18px; }
+    .award-list .award-info strong { display: block; font-weight: 600; color: #222; }
+    .award-list .award-info span { font-size: 11px; color: #888; }
+
+    /* ===== CHART WRAPPER ===== */
+    .chart-wrap { position: relative; height: 240px; }
+
+    /* ===== PRINT BUTTON ===== */
+    .btn-print {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+      font-family: 'Poppins', sans-serif;
+    }
+    .btn-print:hover { background: #96281b; }
+
+    /* ===== FILTER ROW ===== */
+    .filter-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+    .filter-row label { font-size: 13px; color: #555; }
+    .filter-row select {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Poppins', sans-serif;
+      outline: none;
+    }
+    .filter-row select:focus { border-color: #c0392b; }
+
+    /* ===== STAT SUMMARY ===== */
+    .stat-summary { display: flex; gap: 24px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-summary .item { font-size: 13px; color: #555; }
+    .stat-summary .item strong { color: #c0392b; font-size: 20px; display: block; }
+
+    @media print {
+      header, aside, .btn-print { display: none !important; }
+      main { margin-left: 0 !important; padding: 0 !important; }
+      .module { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="header-left">
+    <div class="header-logo"><i class="fas fa-graduation-cap"></i></div>
+    <div class="header-title">
+      <h1>CISEC</h1>
+      <p>Politeknik Balik Pulau</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="datetime">—</div>
+    <div style="font-size:11px;opacity:0.75;">Pusat Inovasi &amp; Keusahawanan</div>
+  </div>
+</header>
+
+<!-- ===== LAYOUT ===== -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-section">Menu</div>
+    <div class="nav-item active" onclick="showModule('ringkasan', this)">
+      <i class="fas fa-th-large"></i> Ringkasan
+    </div>
+    <div class="nav-item" onclick="showModule('pelajar', this)">
+      <i class="fas fa-users"></i> Pelajar &amp; Ahli
+    </div>
+    <div class="nav-item" onclick="showModule('program', this)">
+      <i class="fas fa-calendar-alt"></i> Program &amp; Aktiviti
+    </div>
+    <div class="nav-item" onclick="showModule('kpi', this)">
+      <i class="fas fa-trophy"></i> Pencapaian &amp; KPI
+    </div>
+    <div class="nav-item" onclick="showModule('laporan', this)">
+      <i class="fas fa-chart-bar"></i> Laporan &amp; Statistik
+    </div>
+    <div class="nav-item" onclick="showModule('loicoc', this)">
+      <i class="fas fa-handshake"></i> LOI / MOU &amp; COC
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ===== MODULE: RINGKASAN ===== -->
+    <section id="mod-ringkasan" class="module active">
+      <div class="module-header">
+        <h2><i class="fas fa-th-large" style="margin-right:8px;"></i>Ringkasan</h2>
+        <p>Gambaran keseluruhan CISEC Politeknik Balik Pulau</p>
+        <div class="divider"></div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div>
+            <div class="stat-num">187</div>
+            <div class="stat-label">Jumlah Ahli Berdaftar</div>
+          </div>
+        </div>
+        <div class="stat-card light">
+          <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+          <div>
+            <div class="stat-num">5</div>
+            <div class="stat-label">Program Aktif</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-medal"></i></div>
+          <div>
+            <div class="stat-num">12</div>
+            <div class="stat-label">Pencapaian Tahun Ini</div>
+          </div>
+        </div>
+        <div class="stat-card light">
+          <div class="stat-icon"><i class="fas fa-clock"></i></div>
+          <div>
+            <div class="stat-num">3</div>
+            <div class="stat-label">Program Akan Datang</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <h3><i class="fas fa-bullhorn" style="color:#c0392b;margin-right:6px;"></i>Pengumuman Terkini</h3>
+          <ul class="notice-list">
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div>Pendaftaran Program Usahawan Muda 2025 dibuka</div>
+                <div class="notice-date">15 November 2025</div>
+              </div>
+            </li>
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div>Bengkel Pitching Peringkat Politeknik — tempat terhad</div>
+                <div class="notice-date">10 November 2025</div>
+              </div>
+            </li>
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div>Tahniah! CISEC meraih anugerah terbaik di peringkat zon utara</div>
+                <div class="notice-date">3 November 2025</div>
+              </div>
+            </li>
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div>Mesyuarat Ahli CISEC Sesi 2025/2026 — 25 November 2025</div>
+                <div class="notice-date">1 November 2025</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3><i class="fas fa-calendar" style="color:#c0392b;margin-right:6px;"></i>Program Akan Datang</h3>
+          <ul class="notice-list">
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div><strong>Seminar Keusahawanan Digital</strong></div>
+                <div class="notice-date">25 November 2025 | Dewan Kuliah A</div>
+              </div>
+            </li>
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div><strong>Bengkel Branding &amp; Media Sosial</strong></div>
+                <div class="notice-date">2 Disember 2025 | Makmal Komputer 3</div>
+              </div>
+            </li>
+            <li>
+              <div class="dot"></div>
+              <div>
+                <div><strong>Pameran Produk Pelajar CISEC</strong></div>
+                <div class="notice-date">15 Disember 2025 | Foyer Utama</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE: PELAJAR & AHLI ===== -->
+    <section id="mod-pelajar" class="module">
+      <div class="module-header">
+        <h2><i class="fas fa-users" style="margin-right:8px;"></i>Pelajar &amp; Ahli</h2>
+        <p>Maklumat keahlian dan penglibatan ahli CISEC</p>
+        <div class="divider"></div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <h3><i class="fas fa-chart-pie" style="color:#c0392b;margin-right:6px;"></i>Pecahan Ahli Mengikut Jabatan</h3>
+          <div class="chart-wrap"><canvas id="chartPelajar"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3><i class="fas fa-info-circle" style="color:#c0392b;margin-right:6px;"></i>Statistik Keahlian</h3>
+          <div class="stat-summary">
+            <div class="item"><strong>187</strong>Jumlah Ahli</div>
+            <div class="item"><strong>142</strong>Ahli Aktif</div>
+            <div class="item"><strong>45</strong>Tidak Aktif</div>
+          </div>
+          <table>
+            <thead><tr><th>Jabatan</th><th>Bilangan</th><th>%</th></tr></thead>
+            <tbody>
+              <tr><td>Teknologi Maklumat</td><td>52</td><td>27.8%</td></tr>
+              <tr><td>Kejuruteraan Awam</td><td>41</td><td>21.9%</td></tr>
+              <tr><td>Perdagangan</td><td>38</td><td>20.3%</td></tr>
+              <tr><td>Kejuruteraan Mekanikal</td><td>33</td><td>17.6%</td></tr>
+              <tr><td>Hospitaliti</td><td>23</td><td>12.3%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel full" style="margin-bottom:0;">
+        <h3><i class="fas fa-list" style="color:#c0392b;margin-right:6px;"></i>Senarai Ahli</h3>
+        <div class="filter-row">
+          <label>Tapis Status:</label>
+          <select id="filterStatus" onchange="filterAhli()">
+            <option value="">Semua</option>
+            <option value="Aktif">Aktif</option>
+            <option value="Tidak Aktif">Tidak Aktif</option>
+          </select>
+        </div>
+        <table id="tableAhli">
+          <thead>
+            <tr>
+              <th>#</th><th>Nama</th><th>No. Matrik</th><th>Jabatan</th><th>Program Disertai</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAhli"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== MODULE: PROGRAM & AKTIVITI ===== -->
+    <section id="mod-program" class="module">
+      <div class="module-header">
+        <h2><i class="fas fa-calendar-alt" style="margin-right:8px;"></i>Program &amp; Aktiviti</h2>
+        <p>Senarai program dan aktiviti yang dijalankan oleh CISEC</p>
+        <div class="divider"></div>
+      </div>
+
+      <div class="program-grid" id="programGrid"></div>
+
+      <div class="panel" style="margin-top:24px;">
+        <h3><i class="fas fa-chart-bar" style="color:#c0392b;margin-right:6px;"></i>Bilangan Program Per Bulan (2025)</h3>
+        <div class="chart-wrap"><canvas id="chartProgram"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE: PENCAPAIAN & KPI ===== -->
+    <section id="mod-kpi" class="module">
+      <div class="module-header">
+        <h2><i class="fas fa-trophy" style="margin-right:8px;"></i>Pencapaian &amp; KPI</h2>
+        <p>Prestasi dan pencapaian CISEC berbanding sasaran KPI</p>
+        <div class="divider"></div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <h3><i class="fas fa-chart-line" style="color:#c0392b;margin-right:6px;"></i>Trend Pencapaian Tahunan</h3>
+          <div class="chart-wrap"><canvas id="chartKPI"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3><i class="fas fa-star" style="color:#c0392b;margin-right:6px;"></i>Anugerah &amp; Pertandingan</h3>
+          <ul class="award-list">
+            <li>
+              <i class="fas fa-trophy trophy"></i>
+              <div class="award-info">
+                <strong>Usahawan Muda Terbaik — Zon Utara</strong>
+                <span>2025 | Peringkat Zon</span>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-medal trophy"></i>
+              <div class="award-info">
+                <strong>Naib Johan Pertandingan Pitching Kebangsaan</strong>
+                <span>2025 | Peringkat Kebangsaan</span>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-trophy trophy"></i>
+              <div class="award-info">
+                <strong>Program CISEC Terbaik Politeknik Malaysia</strong>
+                <span>2024 | Peringkat Kebangsaan</span>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-award trophy"></i>
+              <div class="award-info">
+                <strong>Johan Inovasi Produk Pelajar Zon Utara</strong>
+                <span>2024 | Peringkat Zon</span>
+              </div>
+            </li>
+            <li>
+              <i class="fas fa-medal trophy"></i>
+              <div class="award-info">
+                <strong>Johan Pertandingan Reka Bentuk Produk</strong>
+                <span>2023 | Peringkat Politeknik</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3><i class="fas fa-table" style="color:#c0392b;margin-right:6px;"></i>Perbandingan Sasaran KPI vs Pencapaian Sebenar</h3>
+        <table>
+          <thead>
+            <tr><th>KPI</th><th>Sasaran 2025</th><th>Pencapaian 2025</th><th>Sasaran 2024</th><th>Pencapaian 2024</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bilangan Program</td>
+              <td>20</td><td class="kpi-meet">24</td>
+              <td>18</td><td class="kpi-meet">21</td>
+            </tr>
+            <tr>
+              <td>Jumlah Ahli Berdaftar</td>
+              <td>200</td><td class="kpi-miss">187</td>
+              <td>150</td><td class="kpi-meet">162</td>
+            </tr>
+            <tr>
+              <td>Bilangan Anugerah</td>
+              <td>5</td><td class="kpi-meet">7</td>
+              <td>4</td><td class="kpi-meet">5</td>
+            </tr>
+            <tr>
+              <td>Bilangan Peserta Program</td>
+              <td>500</td><td class="kpi-meet">612</td>
+              <td>400</td><td class="kpi-meet">448</td>
+            </tr>
+            <tr>
+              <td>Program Luar Kampus</td>
+              <td>3</td><td class="kpi-miss">2</td>
+              <td>2</td><td class="kpi-meet">3</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#888;margin-top:8px;"><span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:4px;font-weight:600;">Hijau</span> = Sasaran dicapai &nbsp;&nbsp; <span style="background:#ffebee;color:#c62828;padding:2px 8px;border-radius:4px;font-weight:600;">Merah</span> = Sasaran tidak dicapai</p>
+      </div>
+    </section>
+
+    <!-- ===== MODULE: LAPORAN & STATISTIK ===== -->
+    <section id="mod-laporan" class="module">
+      <div class="module-header">
+        <h2><i class="fas fa-chart-bar" style="margin-right:8px;"></i>Laporan &amp; Statistik</h2>
+        <p>Statistik keseluruhan dan eksport laporan CISEC</p>
+        <div class="divider"></div>
+      </div>
+
+      <button class="btn-print" onclick="window.print()">
+        <i class="fas fa-print"></i> Cetak Laporan
+      </button>
+
+      <div class="stat-summary">
+        <div class="item"><strong>45</strong>Jumlah Program (2024–2025)</div>
+        <div class="item"><strong>1,060</strong>Jumlah Peserta</div>
+        <div class="item"><strong>187</strong>Ahli Berdaftar</div>
+        <div class="item"><strong>12</strong>Anugerah Diterima</div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <h3><i class="fas fa-chart-bar" style="color:#c0392b;margin-right:6px;"></i>Bilangan Program Per Semester</h3>
+          <div class="chart-wrap"><canvas id="chartSemester"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3><i class="fas fa-chart-pie" style="color:#c0392b;margin-right:6px;"></i>Penglibatan Pelajar Mengikut Jenis Program</h3>
+          <div class="chart-wrap"><canvas id="chartJenis"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MODULE: LOI / MOU & COC ===== -->
+    <section id="mod-loicoc" class="module">
+      <div class="module-header">
+        <h2><i class="fas fa-handshake" style="margin-right:8px;"></i>LOI / MOU &amp; COC</h2>
+        <p>Senarai perjanjian kerjasama dan sijil yang melibatkan CISEC Politeknik Balik Pulau</p>
+        <div class="divider"></div>
+      </div>
+
+      <div class="stat-summary" id="loiStatSummary"></div>
+
+      <div class="panel" style="margin-bottom:0;">
+        <h3><i class="fas fa-list" style="color:#c0392b;margin-right:6px;"></i>Senarai Dokumen Kerjasama</h3>
+        <div class="filter-row">
+          <label>Tapis Jenis:</label>
+          <select id="filterLOIJenis" onchange="filterLOI()">
+            <option value="">Semua</option>
+            <option value="LOI">LOI</option>
+            <option value="MOU">MOU</option>
+            <option value="COC">COC</option>
+          </select>
+          <label style="margin-left:12px;">Status:</label>
+          <select id="filterLOIStatus" onchange="filterLOI()">
+            <option value="">Semua</option>
+            <option value="Aktif">Aktif</option>
+            <option value="Tamat">Tamat</option>
+          </select>
+        </div>
+        <table id="tableLOI">
+          <thead>
+            <tr>
+              <th>#</th><th>Organisasi</th><th>Jenis</th><th>Tarikh Mula</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyLOI"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div><!-- end layout -->
+
+<script>
+// ===== DATETIME =====
+function updateClock() {
+  const now = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  const date = now.toLocaleDateString('ms-MY', opts);
+  const time = now.toLocaleTimeString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('datetime').textContent = date + ' | ' + time;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== NAVIGATION =====
+function showModule(id, el) {
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('mod-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'pelajar') initPelajarCharts();
+  if (id === 'program') initProgramCharts();
+  if (id === 'kpi') initKPICharts();
+  if (id === 'laporan') initLaporanCharts();
+}
+
+// ===== DATA: AHLI =====
+const dataAhli = [
+  { nama: 'Ahmad Faizul bin Hamid',    matrik: 'TM231001', jabatan: 'Teknologi Maklumat',      program: 4, status: 'Aktif' },
+  { nama: 'Nurul Aina binti Zulkifli', matrik: 'TM231022', jabatan: 'Teknologi Maklumat',      program: 3, status: 'Aktif' },
+  { nama: 'Muhammad Hafiz bin Razak',  matrik: 'KA231045', jabatan: 'Kejuruteraan Awam',       program: 2, status: 'Aktif' },
+  { nama: 'Siti Nabilah binti Osman',  matrik: 'PD231011', jabatan: 'Perdagangan',             program: 5, status: 'Aktif' },
+  { nama: 'Khairul Amir bin Ismail',   matrik: 'KM231033', jabatan: 'Kejuruteraan Mekanikal',  program: 1, status: 'Aktif' },
+  { nama: 'Fatin Izzati binti Sulaiman',matrik:'PD231055', jabatan: 'Perdagangan',             program: 3, status: 'Aktif' },
+  { nama: 'Amirul Haziq bin Mat',      matrik: 'TM231078', jabatan: 'Teknologi Maklumat',      program: 0, status: 'Tidak Aktif' },
+  { nama: 'Nur Syafiqah binti Daud',   matrik: 'HP231019', jabatan: 'Hospitaliti',             program: 4, status: 'Aktif' },
+  { nama: 'Haikal Irfan bin Yusoff',   matrik: 'KA231060', jabatan: 'Kejuruteraan Awam',       program: 2, status: 'Aktif' },
+  { nama: 'Wan Nabilah binti Aziz',    matrik: 'TM231090', jabatan: 'Teknologi Maklumat',      program: 0, status: 'Tidak Aktif' },
+  { nama: 'Aimi Syahirah binti Zaini', matrik: 'HP231032', jabatan: 'Hospitaliti',             program: 3, status: 'Aktif' },
+  { nama: 'Luqmanul Hakim bin Nordin', matrik: 'KM231048', jabatan: 'Kejuruteraan Mekanikal',  program: 2, status: 'Aktif' },
+  { nama: 'Nurhidayah binti Bakar',    matrik: 'PD231070', jabatan: 'Perdagangan',             program: 1, status: 'Tidak Aktif' },
+  { nama: 'Izzuddin bin Ramli',        matrik: 'KA231082', jabatan: 'Kejuruteraan Awam',       program: 3, status: 'Aktif' },
+  { nama: 'Sofiah binti Mohd Noor',    matrik: 'TM231101', jabatan: 'Teknologi Maklumat',      program: 2, status: 'Aktif' },
+];
+
+function renderAhli(data) {
+  const tbody = document.getElementById('tbodyAhli');
+  tbody.innerHTML = data.map((a, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${a.nama}</td>
+      <td>${a.matrik}</td>
+      <td>${a.jabatan}</td>
+      <td style="text-align:center;">${a.program}</td>
+      <td><span class="badge ${a.status === 'Aktif' ? 'badge-green' : 'badge-red'}">${a.status}</span></td>
+    </tr>`).join('');
+}
+renderAhli(dataAhli);
+
+function filterAhli() {
+  const val = document.getElementById('filterStatus').value;
+  const filtered = val ? dataAhli.filter(a => a.status === val) : dataAhli;
+  renderAhli(filtered);
+}
+
+// ===== DATA: PROGRAM =====
+const dataProgram = [
+  { nama: 'Seminar Keusahawanan Digital', tarikh: '25 Nov 2025', lokasi: 'Dewan Kuliah A',      peserta: 85,  status: 'Akan Datang' },
+  { nama: 'Bengkel Branding & Media Sosial', tarikh: '2 Dis 2025', lokasi: 'Makmal Komputer 3', peserta: 30,  status: 'Akan Datang' },
+  { nama: 'Pameran Produk Pelajar',       tarikh: '15 Dis 2025', lokasi: 'Foyer Utama',         peserta: 200, status: 'Akan Datang' },
+  { nama: 'Talk Usahawan Berjaya',        tarikh: '10 Nov 2025', lokasi: 'Dewan Kuliah B',      peserta: 120, status: 'Sedang Berjalan' },
+  { nama: 'Bengkel Pitching Peringkat Politeknik', tarikh: '5 Nov 2025', lokasi: 'Bilik Seminar', peserta: 40, status: 'Sedang Berjalan' },
+  { nama: 'Kursus Asas Perniagaan Online', tarikh: '20 Okt 2025', lokasi: 'Makmal Komputer 1', peserta: 50,  status: 'Selesai' },
+  { nama: 'Program Mentor Usahawan',      tarikh: '10 Okt 2025', lokasi: 'Bilik Mesyuarat',    peserta: 25,  status: 'Selesai' },
+  { nama: 'Lawatan Industri Usahawan',    tarikh: '1 Okt 2025',  lokasi: 'Luar Kampus',        peserta: 35,  status: 'Selesai' },
+];
+
+function badgeClass(status) {
+  if (status === 'Akan Datang') return 'badge-blue';
+  if (status === 'Sedang Berjalan') return 'badge-orange';
+  return 'badge-grey';
+}
+
+function renderProgram() {
+  const grid = document.getElementById('programGrid');
+  grid.innerHTML = dataProgram.map(p => `
+    <div class="prog-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <h4>${p.nama}</h4>
+        <span class="badge ${badgeClass(p.status)}" style="margin-left:8px;white-space:nowrap;">${p.status}</span>
+      </div>
+      <div class="prog-meta"><i class="fas fa-calendar"></i> ${p.tarikh}</div>
+      <div class="prog-meta"><i class="fas fa-map-marker-alt"></i> ${p.lokasi}</div>
+      <div class="prog-meta"><i class="fas fa-user-friends"></i> ${p.peserta} peserta</div>
+    </div>`).join('');
+}
+renderProgram();
+
+// ===== DATA: LOI / MOU & COC =====
+const dataLOI = [
+  { organisasi: 'GIG',                        jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'KITAB',                       jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'MRM',                         jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'Muhammadiyah',                jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'P. Lokh',                     jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'PEKA',                        jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'PEREKA',                      jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'Politeknik USK',              jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'SKT',                         jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'SOTA',                        jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'IBM',                         jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'IBM',                         jenis: 'MOU', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'Masjid Daerah',               jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'Micron',                      jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: 'PKT Logistik',                jenis: 'LOI', tarikh: 'TBD', status: 'Aktif' },
+  { organisasi: '—',                           jenis: 'COC', tarikh: '31 Mei 2023', status: 'Aktif' },
+];
+
+function loiJenisBadge(jenis) {
+  if (jenis === 'MOU') return 'badge-blue';
+  if (jenis === 'COC') return 'badge-orange';
+  return 'badge-grey';
+}
+
+function renderLOI(data) {
+  const tbody = document.getElementById('tbodyLOI');
+  tbody.innerHTML = data.map((d, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${d.organisasi}</td>
+      <td><span class="badge ${loiJenisBadge(d.jenis)}">${d.jenis}</span></td>
+      <td>${d.tarikh}</td>
+      <td><span class="badge ${d.status === 'Aktif' ? 'badge-green' : 'badge-red'}">${d.status}</span></td>
+    </tr>`).join('');
+}
+
+function updateLOIStats(data) {
+  const aktif = data.filter(d => d.status === 'Aktif').length;
+  const tamat = data.filter(d => d.status === 'Tamat').length;
+  document.getElementById('loiStatSummary').innerHTML = `
+    <div class="item"><strong>${data.length}</strong>Jumlah Dokumen</div>
+    <div class="item"><strong>${aktif}</strong>Masih Aktif</div>
+    <div class="item"><strong>${tamat}</strong>Tamat</div>
+  `;
+}
+
+function filterLOI() {
+  const jenis  = document.getElementById('filterLOIJenis').value;
+  const status = document.getElementById('filterLOIStatus').value;
+  const filtered = dataLOI.filter(d =>
+    (!jenis  || d.jenis  === jenis) &&
+    (!status || d.status === status)
+  );
+  renderLOI(filtered);
+  updateLOIStats(filtered);
+}
+
+// initialise on first load so stats are ready when tab is opened
+renderLOI(dataLOI);
+updateLOIStats(dataLOI);
+
+// ===== CHARTS =====
+let chartInstances = {};
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function initPelajarCharts() {
+  destroyChart('chartPelajar');
+  chartInstances['chartPelajar'] = new Chart(document.getElementById('chartPelajar'), {
+    type: 'pie',
+    data: {
+      labels: ['Teknologi Maklumat', 'Kejuruteraan Awam', 'Perdagangan', 'Kej. Mekanikal', 'Hospitaliti'],
+      datasets: [{ data: [52, 41, 38, 33, 23], backgroundColor: ['#c0392b','#e74c3c','#f1948a','#fadbd8','#922b21'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Poppins', size: 11 } } } } }
+  });
+}
+
+function initProgramCharts() {
+  destroyChart('chartProgram');
+  chartInstances['chartProgram'] = new Chart(document.getElementById('chartProgram'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogs','Sep','Okt','Nov','Dis'],
+      datasets: [{ label: 'Bilangan Program', data: [1,0,2,1,3,2,1,2,2,3,3,2], backgroundColor: '#c0392b', borderRadius: 5 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { family:'Poppins' } } }, x: { ticks: { font: { family:'Poppins' } } } } }
+  });
+}
+
+function initKPICharts() {
+  destroyChart('chartKPI');
+  chartInstances['chartKPI'] = new Chart(document.getElementById('chartKPI'), {
+    type: 'line',
+    data: {
+      labels: ['2021','2022','2023','2024','2025'],
+      datasets: [
+        { label: 'Sasaran', data: [10,12,15,18,20], borderColor: '#aaa', borderDash: [5,5], tension: 0.3, fill: false, pointRadius: 4 },
+        { label: 'Pencapaian', data: [9,13,16,21,24], borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.1)', tension: 0.3, fill: true, pointRadius: 5 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { family:'Poppins', size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { font: { family:'Poppins' } } }, x: { ticks: { font: { family:'Poppins' } } } } }
+  });
+}
+
+function initLaporanCharts() {
+  destroyChart('chartSemester');
+  destroyChart('chartJenis');
+  chartInstances['chartSemester'] = new Chart(document.getElementById('chartSemester'), {
+    type: 'bar',
+    data: {
+      labels: ['Sem 1 2024','Sem 2 2024','Sem 1 2025','Sem 2 2025'],
+      datasets: [{ label: 'Bilangan Program', data: [10,11,11,13], backgroundColor: ['#c0392b','#e74c3c','#c0392b','#e74c3c'], borderRadius: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 2, font: { family:'Poppins' } } }, x: { ticks: { font: { family:'Poppins' } } } } }
+  });
+  chartInstances['chartJenis'] = new Chart(document.getElementById('chartJenis'), {
+    type: 'pie',
+    data: {
+      labels: ['Seminar / Talk', 'Bengkel', 'Pameran', 'Pertandingan', 'Lawatan'],
+      datasets: [{ data: [35, 30, 15, 12, 8], backgroundColor: ['#c0392b','#e74c3c','#f1948a','#fadbd8','#922b21'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Poppins', size: 11 } } } } }
+  });
+}
+</script>
+</body>
+</html>
